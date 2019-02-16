@@ -1,7 +1,13 @@
+import org.sikuli.api.DesktopScreenRegion;
+import org.sikuli.api.ImageTarget;
+import org.sikuli.api.ScreenRegion;
+import org.sikuli.api.Target;
+import org.sikuli.api.robot.Mouse;
+import org.sikuli.api.robot.desktop.DesktopMouse;
+
 import javax.imageio.ImageIO;
 
 import java.awt.*;
-import java.awt.event.InputEvent;
 import java.awt.image.BufferedImage;
 import java.io.File;
 import java.io.IOException;
@@ -11,19 +17,19 @@ import java.util.*;
 
 import static org.sikuli.api.API.browse;
 
-public class Robot {
+public class RobotST {
     public static void main(String[] argv) throws Exception {
         int counterTests = 0;
-        int numberTests = 3;
-        int minimumSecondsForTest = 120;
-        int maximumSecondsForTest = 150;
-        java.awt.Robot robot = new java.awt.Robot();
+        int numberTests = 2;
+        int minimumSecondsForTest = 5;
+        int maximumSecondsForTest = 60;
+        Robot robot = new Robot();
         Dimension dimension = Toolkit.getDefaultToolkit().getScreenSize();
+        BufferedImage imageStartButton = ImageIO.read(new File("../resources/button_start.PNG"));
+        BufferedImage imageTestAgainButton = ImageIO.read(new File("../resources/button_testuj_ponownie.PNG"));
 
         browse(new URL("http://www.speedtest.pl/"));
         System.out.println("Opening URL...");
-        int x = (int) (0.53 * dimension.width);
-        int y = (int) (0.61 * dimension.height);
         System.out.println("Dimension: " + dimension);
 
         if (argv.length > 0) {
@@ -46,33 +52,36 @@ public class Robot {
         int[] times = new SplittableRandom().ints(numberTests, minimumSecondsForTest, maximumSecondsForTest)
                 .parallel()
                 .toArray();
-        System.out.println("Pause times for each test in order [seconds]: " + Arrays.toString(times));
+        System.out.println("Pause time/s for " + numberTests + "test/s in order [seconds]: " + Arrays.toString(times));
 
         while (counterTests < numberTests) {
             System.out.println("Test numer " + counterTests + " executing...");
-            Thread.sleep((long) (times[counterTests] * 300));
-            confirmButtonStart(robot, x, y);
-            Thread.sleep((long) (times[counterTests] * 700));
-            screenCapture(robot, dimension);
-            confirmButtonTestAgain(robot, x, y + 130);
+            confirmButtonStart(imageStartButton);
+            confirmButtonTestAgain(imageTestAgainButton, robot, dimension);
+            Thread.sleep(times[counterTests] * 1_000);
             ++counterTests;
         }
         System.out.println("End.");
     }
 
-    private static void confirmButtonStart(java.awt.Robot robot, int x, int y) {
-        robot.mouseMove(x, y);
-        robot.mousePress(InputEvent.BUTTON1_MASK);
-        robot.mouseRelease(InputEvent.BUTTON1_MASK);
+    private static void confirmButtonStart(BufferedImage imageStartButton) {
+        Target imageStartButtonTarget = new ImageTarget(imageStartButton);
+        ScreenRegion s = new DesktopScreenRegion();
+        ScreenRegion r = s.wait(imageStartButtonTarget, 3_600_000);
+        Mouse mouse = new DesktopMouse();
+        mouse.click(r.getCenter());
     }
 
-    private static void confirmButtonTestAgain(java.awt.Robot robot, int x, int y) {
-        robot.mouseMove(x, y);
-        robot.mousePress(InputEvent.BUTTON1_MASK);
-        robot.mouseRelease(InputEvent.BUTTON1_MASK);
+    private static void confirmButtonTestAgain(BufferedImage imageTestAgainButton, Robot robot, Dimension dimension) {
+        Target imageTestAgainButtonTarget = new ImageTarget(imageTestAgainButton);
+        ScreenRegion s = new DesktopScreenRegion();
+        ScreenRegion r = s.wait(imageTestAgainButtonTarget, 3_600_000);
+        screenCapture(robot, dimension);
+        Mouse mouse = new DesktopMouse();
+        mouse.click(r.getCenter());
     }
 
-    private static void screenCapture(java.awt.Robot robot, Dimension dimension) {
+    private static void screenCapture(Robot robot, Dimension dimension) {
         Rectangle rectangle = new Rectangle(dimension);
         BufferedImage screen = robot.createScreenCapture(rectangle);
         try {
