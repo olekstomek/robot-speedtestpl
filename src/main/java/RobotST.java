@@ -21,8 +21,9 @@ public class RobotST {
     public static void main(String[] argv) throws Exception {
         int counterTests = 0;
         int numberTests = 2;
-        int minimumSecondsForTest = 5;
-        int maximumSecondsForTest = 60;
+        int minimumSecondsForTest = 20;
+        int maximumSecondsForTest = 30;
+        int timeWaitForElement = 60 + maximumSecondsForTest;
         Robot robot = new Robot();
         Dimension dimension = Toolkit.getDefaultToolkit().getScreenSize();
         BufferedImage imageStartButton = ImageIO.read(new File("../resources/button_start.PNG"));
@@ -34,9 +35,16 @@ public class RobotST {
 
         if (argv.length > 0) {
             try {
-                numberTests = Integer.parseInt(argv[0]);
-                minimumSecondsForTest = Integer.parseInt(argv[1]);
-                maximumSecondsForTest = Integer.parseInt(argv[2]);
+                numberTests = Math.abs(Integer.parseInt(argv[0]));
+                minimumSecondsForTest = Math.abs(Integer.parseInt(argv[1]));
+                maximumSecondsForTest = Math.abs(Integer.parseInt(argv[2]));
+                if (minimumSecondsForTest > maximumSecondsForTest) {
+                    minimumSecondsForTest = minimumSecondsForTest - maximumSecondsForTest;
+                    maximumSecondsForTest = maximumSecondsForTest + minimumSecondsForTest;
+                    minimumSecondsForTest = maximumSecondsForTest - minimumSecondsForTest;
+                }
+                timeWaitForElement = 60 + maximumSecondsForTest;
+                System.out.println("Max waiting for elements on page [s]: " + timeWaitForElement);
             } catch (NumberFormatException e) {
                 System.err.println("Argument must be an integer!");
                 e.printStackTrace();
@@ -52,33 +60,45 @@ public class RobotST {
         int[] times = new SplittableRandom().ints(numberTests, minimumSecondsForTest, maximumSecondsForTest)
                 .parallel()
                 .toArray();
-        System.out.println("Pause time/s for " + numberTests + "test/s in order [seconds]: " + Arrays.toString(times));
+        System.out.println("Pause time/s for " + numberTests + " test/s in order [seconds]: " + Arrays.toString(times));
 
         while (counterTests < numberTests) {
             System.out.println("Test numer " + counterTests + " executing...");
-            confirmButtonStart(imageStartButton);
-            confirmButtonTestAgain(imageTestAgainButton, robot, dimension);
+            try {
+                confirmButtonStart(imageStartButton, timeWaitForElement);
+                confirmButtonTestAgain(imageTestAgainButton, robot, dimension, timeWaitForElement);
+            } catch (NullPointerException e) {
+                e.printStackTrace();
+                System.out.println("Probably problem with find element on page, opening new page and trying again");
+                browse(new URL("http://www.speedtest.pl/"));
+            }
             Thread.sleep(times[counterTests] * 1_000);
             ++counterTests;
         }
-        System.out.println("End.");
+        System.out.println("Last test was executed. End.");
     }
 
-    private static void confirmButtonStart(BufferedImage imageStartButton) {
-        Target imageStartButtonTarget = new ImageTarget(imageStartButton);
-        ScreenRegion s = new DesktopScreenRegion();
-        ScreenRegion r = s.wait(imageStartButtonTarget, 3_600_000);
-        Mouse mouse = new DesktopMouse();
-        mouse.click(r.getCenter());
+    private static void confirmButtonStart(BufferedImage imageStartButton, int time_wait_for_element) {
+        ScreenRegion r = findButtonOnPage(imageStartButton, time_wait_for_element);
+        clickOnButton(r);
     }
 
-    private static void confirmButtonTestAgain(BufferedImage imageTestAgainButton, Robot robot, Dimension dimension) {
-        Target imageTestAgainButtonTarget = new ImageTarget(imageTestAgainButton);
-        ScreenRegion s = new DesktopScreenRegion();
-        ScreenRegion r = s.wait(imageTestAgainButtonTarget, 3_600_000);
+    private static void confirmButtonTestAgain(BufferedImage imageTestAgainButton, Robot robot,
+                                               Dimension dimension, int time_wait_for_element) {
+        ScreenRegion r = findButtonOnPage(imageTestAgainButton, time_wait_for_element);
         screenCapture(robot, dimension);
+        clickOnButton(r);
+    }
+
+    private static void clickOnButton(ScreenRegion r) {
         Mouse mouse = new DesktopMouse();
         mouse.click(r.getCenter());
+    }
+
+    private static ScreenRegion findButtonOnPage(BufferedImage imageButton, int timeWaitForElement) {
+        Target imageTestAgainButtonTarget = new ImageTarget(imageButton);
+        ScreenRegion s = new DesktopScreenRegion();
+        return s.wait(imageTestAgainButtonTarget, timeWaitForElement * 1000);
     }
 
     private static void screenCapture(Robot robot, Dimension dimension) {

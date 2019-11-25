@@ -20,18 +20,24 @@ It means that:
 - three tests will be performed -> **the first parameter**
 - the interval between tests will be random from 10 seconds to 19 *(10 <= x < 20)* -> **second and third parameter**
 
-Result in the console:
+Test example in the console:
 ```
+java -cp .;../resources/sikuli-slides-1.2.0.jar RobotST 5 2 -10
 Opening URL...
 Dimension: java.awt.Dimension[width=1366,height=768]
-Pause time/s for 3test/s in order [seconds]: [17, 16, 17]
+Max waiting for elements on page [s]: 70
+Pause time/s for 5 test/s in order [seconds]: [8, 8, 9, 2, 9]
 Test numer 0 executing...
 Test numer 1 executing...
 Test numer 2 executing...
-End.
+Test numer 3 executing...
+Test numer 4 executing...
+Last test was executed. End.
 ```
 
 Remember that:
 - you can not specify a value other than a number (eg String) as an argument,
-- the second parameter must be smaller than the third (bound must be greater than origin)
-- the program waits by default for graphic elements 1 hour (3 600 000 milliseconds), if the parameters of *the minimumSecondsForTest* or *maximumSecondsForTest* exceed this value an error may appear. Of course, you can always change this time before compiling.
+- the second parameter can be smaller than the third (program change automatically values),
+- the program waits by default for graphic elements 60 seconds + maximum seconds for test (second parameter),
+- values can be negative (program change automatically values to positive),
+- program create screenshot with every result.
