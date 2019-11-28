@@ -24,6 +24,7 @@ public class RobotST {
         int minimumSecondsForTest = 20;
         int maximumSecondsForTest = 30;
         int timeWaitForElement = 60 + maximumSecondsForTest;
+        boolean makeScreenshot = true;
         Robot robot = new Robot();
         Dimension dimension = Toolkit.getDefaultToolkit().getScreenSize();
         BufferedImage imageStartButton = ImageIO.read(new File("../resources/button_start.PNG"));
@@ -38,24 +39,26 @@ public class RobotST {
                 numberTests = Math.abs(Integer.parseInt(argv[0]));
                 minimumSecondsForTest = Math.abs(Integer.parseInt(argv[1]));
                 maximumSecondsForTest = Math.abs(Integer.parseInt(argv[2]));
+                makeScreenshot = Boolean.parseBoolean(argv[3]);
                 if (minimumSecondsForTest > maximumSecondsForTest) {
                     minimumSecondsForTest = minimumSecondsForTest - maximumSecondsForTest;
                     maximumSecondsForTest = maximumSecondsForTest + minimumSecondsForTest;
                     minimumSecondsForTest = maximumSecondsForTest - minimumSecondsForTest;
                 }
                 timeWaitForElement = 60 + maximumSecondsForTest;
-                System.out.println("Max waiting for elements on page [s]: " + timeWaitForElement);
             } catch (NumberFormatException e) {
                 System.err.println("Argument must be an integer!");
                 e.printStackTrace();
                 System.exit(1);
+            } catch (ArrayIndexOutOfBoundsException e) {
+                System.err.println("Input all arguments or none!");
+                e.printStackTrace();
+                System.exit(1);
             }
-        } else {
-            System.out.println("Settings default params:" +
-                    "\n - number tests: " + numberTests +
-                    "\n - minimum seconds to start: " + minimumSecondsForTest +
-                    "\n - maximum seconds to start: " + maximumSecondsForTest);
         }
+        System.out.println("Max waiting for elements on page [s]: " + timeWaitForElement);
+        showSettings(numberTests, minimumSecondsForTest, maximumSecondsForTest, makeScreenshot);
+
 
         int[] times = new SplittableRandom().ints(numberTests, minimumSecondsForTest, maximumSecondsForTest)
                 .parallel()
@@ -66,7 +69,7 @@ public class RobotST {
             System.out.println("Test numer " + counterTests + " executing...");
             try {
                 confirmButtonStart(imageStartButton, timeWaitForElement);
-                confirmButtonTestAgain(imageTestAgainButton, robot, dimension, timeWaitForElement);
+                confirmButtonTestAgain(imageTestAgainButton, robot, dimension, timeWaitForElement, makeScreenshot);
             } catch (NullPointerException e) {
                 e.printStackTrace();
                 System.out.println("Probably problem with find element on page, opening new page and trying again");
@@ -78,16 +81,31 @@ public class RobotST {
         System.out.println("Last test was executed. End.");
     }
 
+    private static void showSettings(int numberTests, int minimumSecondsForTest,
+                                     int maximumSecondsForTest, boolean makeScreenshot) {
+        System.out.println("Settings default params:" +
+                "\n - number tests: " + numberTests +
+                "\n - minimum seconds to start: " + minimumSecondsForTest +
+                "\n - maximum seconds to start: " + maximumSecondsForTest +
+                "\n - make screenshot: " + makeScreenshot);
+    }
+
     private static void confirmButtonStart(BufferedImage imageStartButton, int time_wait_for_element) {
         ScreenRegion r = findButtonOnPage(imageStartButton, time_wait_for_element);
         clickOnButton(r);
     }
 
     private static void confirmButtonTestAgain(BufferedImage imageTestAgainButton, Robot robot,
-                                               Dimension dimension, int time_wait_for_element) {
+                                               Dimension dimension, int time_wait_for_element, boolean makeScreenshot) {
         ScreenRegion r = findButtonOnPage(imageTestAgainButton, time_wait_for_element);
-        screenCapture(robot, dimension);
+        makeScreenshot(makeScreenshot, robot, dimension);
         clickOnButton(r);
+    }
+
+    private static void makeScreenshot(boolean makeScreenshot, Robot robot, Dimension dimension) {
+        if (makeScreenshot) {
+            screenCapture(robot, dimension);
+        }
     }
 
     private static void clickOnButton(ScreenRegion r) {
@@ -105,7 +123,7 @@ public class RobotST {
         Rectangle rectangle = new Rectangle(dimension);
         BufferedImage screen = robot.createScreenCapture(rectangle);
         try {
-            SimpleDateFormat simpleDateFormat = new SimpleDateFormat("MM-dd-YYYY--hh-mm-ss_");
+            SimpleDateFormat simpleDateFormat = new SimpleDateFormat("MM-dd-YYYY--hh-mm-ss-aaa__");
             ImageIO.write(screen, "jpg", new File(simpleDateFormat
                     .format(new Date()) + "speedtest.jpg"));
         } catch (IOException e) {
