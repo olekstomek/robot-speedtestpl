@@ -45,4 +45,4 @@ Remember that:
 - the program waits by default for graphic elements 60 seconds + maximum seconds for test (second parameter),
 - values can be negative (program change automatically values to positive),
 - program create screenshot with every result,
-- if the page does not display a button or the button is not recognized, a new page tab will be opened in the previewer and the test will continue,
+- if the page does not display a button or the button is not recognized, a new page tab will be opened in the browswer and the test will continue,
