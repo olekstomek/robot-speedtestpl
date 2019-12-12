@@ -5,26 +5,29 @@ import org.sikuli.api.Target;
 import org.sikuli.api.robot.Mouse;
 import org.sikuli.api.robot.desktop.DesktopMouse;
 
-import javax.imageio.ImageIO;
+import static org.sikuli.api.API.browse;
 
+import javax.imageio.ImageIO;
 import java.awt.*;
 import java.awt.image.BufferedImage;
 import java.io.File;
 import java.io.IOException;
 import java.net.URL;
 import java.text.SimpleDateFormat;
+import java.time.LocalDateTime;
 import java.util.*;
 
-import static org.sikuli.api.API.browse;
 
 public class RobotST {
     public static void main(String[] argv) throws Exception {
-        int counterTests = 0;
-        int numberTests = 2;
+        int counterTests = 1;
+        int numberTests = 50;
+        LocalDateTime finishTestsDateTime = LocalDateTime.now().plusHours(1);
         int minimumSecondsForTest = 20;
         int maximumSecondsForTest = 30;
         int timeWaitForElement = 60 + maximumSecondsForTest;
         boolean makeScreenshot = true;
+        int pauseBeforeNextTest;
         Robot robot = new Robot();
         Dimension dimension = Toolkit.getDefaultToolkit().getScreenSize();
         BufferedImage imageStartButton = ImageIO.read(new File("../resources/button_start.PNG"));
@@ -37,9 +40,10 @@ public class RobotST {
         if (argv.length > 0) {
             try {
                 numberTests = Math.abs(Integer.parseInt(argv[0]));
-                minimumSecondsForTest = Math.abs(Integer.parseInt(argv[1]));
-                maximumSecondsForTest = Math.abs(Integer.parseInt(argv[2]));
-                makeScreenshot = Boolean.parseBoolean(argv[3]);
+                finishTestsDateTime = finishTestsDateTime.minusHours(1).plusMinutes(Long.parseLong(argv[1]));
+                minimumSecondsForTest = Math.abs(Integer.parseInt(argv[2]));
+                maximumSecondsForTest = Math.abs(Integer.parseInt(argv[3]));
+                makeScreenshot = Boolean.parseBoolean(argv[4]);
                 if (minimumSecondsForTest > maximumSecondsForTest) {
                     minimumSecondsForTest = minimumSecondsForTest - maximumSecondsForTest;
                     maximumSecondsForTest = maximumSecondsForTest + minimumSecondsForTest;
@@ -55,17 +59,12 @@ public class RobotST {
                 e.printStackTrace();
                 System.exit(1);
             }
+        } else {
+            System.out.println("Default configuration");
         }
         System.out.println("Max waiting for elements on page [s]: " + timeWaitForElement);
-        showSettings(numberTests, minimumSecondsForTest, maximumSecondsForTest, makeScreenshot);
-
-
-        int[] times = new SplittableRandom().ints(numberTests, minimumSecondsForTest, maximumSecondsForTest)
-                .parallel()
-                .toArray();
-        System.out.println("Pause time/s for " + numberTests + " test/s in order [seconds]: " + Arrays.toString(times));
-
-        while (counterTests < numberTests) {
+        showSettings(numberTests, minimumSecondsForTest, maximumSecondsForTest, makeScreenshot, finishTestsDateTime);
+        while (counterTests <= numberTests || LocalDateTime.now().isBefore(finishTestsDateTime)) {
             System.out.println("Test numer " + counterTests + " executing...");
             try {
                 confirmButtonStart(imageStartButton, timeWaitForElement);
@@ -75,19 +74,33 @@ public class RobotST {
                 System.out.println("Probably problem with find element on page, opening new page and trying again");
                 browse(new URL("http://www.speedtest.pl/"));
             }
-            Thread.sleep(times[counterTests] * 1_000);
+            System.out.println("Test number " + counterTests + " finished.");
+            if (counterTests <= numberTests || LocalDateTime.now().isBefore(finishTestsDateTime)) {
+                pauseBeforeNextTest = (int) (Math.random() * ((maximumSecondsForTest - minimumSecondsForTest) + 1))
+                        + minimumSecondsForTest;
+                System.out.println("\nWaiting for next test by: " + pauseBeforeNextTest + " seconds.");
+                Thread.sleep(pauseBeforeNextTest * 1_000);
+            } else {
+                System.out.println("Last test was executed. End.");
+            }
             ++counterTests;
         }
-        System.out.println("Last test was executed. End.");
     }
 
     private static void showSettings(int numberTests, int minimumSecondsForTest,
-                                     int maximumSecondsForTest, boolean makeScreenshot) {
-        System.out.println("Settings default params:" +
-                "\n - number tests: " + numberTests +
-                "\n - minimum seconds to start: " + minimumSecondsForTest +
-                "\n - maximum seconds to start: " + maximumSecondsForTest +
-                "\n - make screenshot: " + makeScreenshot);
+                                     int maximumSecondsForTest, boolean makeScreenshot,
+                                     LocalDateTime finishTestsDateTime) {
+        System.out.println("Settings params:" +
+                "\n - Tests will be completed after "
+                + numberTests +
+                " tests and when the date and time didn't exceed: "
+                + finishTestsDateTime +
+                "\n - minimum seconds to start test: " +
+                minimumSecondsForTest +
+                "\n - maximum seconds to start test: " +
+                maximumSecondsForTest +
+                "\n - make screenshot: " +
+                makeScreenshot);
     }
 
     private static void confirmButtonStart(BufferedImage imageStartButton, int time_wait_for_element) {
@@ -126,6 +139,7 @@ public class RobotST {
             SimpleDateFormat simpleDateFormat = new SimpleDateFormat("MM-dd-YYYY--hh-mm-ss-aaa__");
             ImageIO.write(screen, "jpg", new File(simpleDateFormat
                     .format(new Date()) + "speedtest.jpg"));
+            System.out.println("Screenshot was made.");
         } catch (IOException e) {
             System.err.println("Can't make screenshot.");
             e.printStackTrace();
