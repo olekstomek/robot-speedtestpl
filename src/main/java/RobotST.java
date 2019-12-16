@@ -17,7 +17,6 @@ import java.text.SimpleDateFormat;
 import java.time.LocalDateTime;
 import java.util.*;
 
-
 public class RobotST {
     public static void main(String[] argv) throws Exception {
         int counterTests = 1;
@@ -80,11 +79,10 @@ public class RobotST {
                         + minimumSecondsForTest;
                 System.out.println("\nWaiting for next test by: " + pauseBeforeNextTest + " seconds.");
                 Thread.sleep(pauseBeforeNextTest * 1_000);
-            } else {
-                System.out.println("Last test was executed. End.");
             }
             ++counterTests;
         }
+        System.out.println("Last test was executed. End.");
     }
 
     private static void showSettings(int numberTests, int minimumSecondsForTest,
